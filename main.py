@@ -202,15 +202,19 @@ def stats_command(args, components):
 
 def web_command(args, components):
     """启动Web服务"""
+    host = args.host
+    port = args.port
+    debug = args.debug or Config.FLASK_DEBUG
+    
     print("正在启动Web服务...")
-    print(f"访问地址: http://{Config.FLASK_HOST}:{Config.FLASK_PORT}")
+    print(f"访问地址: http://{host}:{port}")
     
     # 导入并启动Flask应用
     from src.api.app import app
     app.run(
-        host=Config.FLASK_HOST,
-        port=Config.FLASK_PORT,
-        debug=Config.FLASK_DEBUG
+        host=host,
+        port=port,
+        debug=debug
     )
 
 def main():
@@ -248,6 +252,9 @@ def main():
     
     # Web服务命令
     web_parser = subparsers.add_parser('web', help='启动Web服务')
+    web_parser.add_argument('--host', default=Config.FLASK_HOST, help='服务器主机地址')
+    web_parser.add_argument('--port', type=int, default=Config.FLASK_PORT, help='服务器端口')
+    web_parser.add_argument('--debug', action='store_true', help='启用调试模式')
     
     args = parser.parse_args()
     
