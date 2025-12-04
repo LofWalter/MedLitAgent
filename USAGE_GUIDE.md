@@ -3,16 +3,35 @@
 ## 🚀 快速开始
 
 ### 1. 系统要求
-- Python 3.8+
+- **Python 3.12.9** (推荐版本，确保最佳兼容性)
 - 至少 2GB 内存
 - 网络连接（用于爬取文献）
+- Git (用于克隆项目)
 
 ### 2. 安装和配置
 
+#### 快速安装（推荐）
 ```bash
 # 克隆项目
-git clone <repository-url>
+git clone https://github.com/LofWalter/MedLitAgent.git
 cd MedLitAgent
+
+# 运行安装脚本
+# Linux/macOS:
+chmod +x install.sh
+./install.sh
+
+# Windows:
+install.bat
+```
+
+#### 手动安装
+```bash
+# 确保使用 Python 3.12.9
+python --version  # 应该显示 Python 3.12.9
+
+# 升级 pip
+pip install --upgrade pip
 
 # 安装依赖
 pip install -r requirements.txt
@@ -22,6 +41,16 @@ python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk
 
 # 运行演示
 python demo.py
+```
+
+#### Docker 安装
+```bash
+# 使用 Docker
+docker build -t medlitagent .
+docker run -p 12000:12000 medlitagent
+
+# 或使用 docker-compose
+docker-compose up
 ```
 
 ### 3. 基本使用
