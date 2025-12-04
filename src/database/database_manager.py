@@ -347,6 +347,7 @@ class DatabaseManager:
             # 基本统计
             total_papers = session.query(Paper).count()
             total_keywords = session.query(Keyword).count()
+            total_categories = session.query(Category).count()
             
             # 按来源统计
             source_stats = session.query(
@@ -365,9 +366,14 @@ class DatabaseManager:
                 Paper.created_at >= recent_date
             ).count()
             
+            # 数据源数量
+            total_sources = session.query(Paper.source).distinct().count()
+            
             return {
                 'total_papers': total_papers,
                 'total_keywords': total_keywords,
+                'total_categories': total_categories,
+                'total_sources': total_sources,
                 'recent_papers_7days': recent_papers,
                 'source_distribution': dict(source_stats),
                 'category_distribution': dict(category_stats)
@@ -375,7 +381,15 @@ class DatabaseManager:
             
         except Exception as e:
             self.logger.error(f"获取统计信息失败: {e}")
-            return {}
+            return {
+                'total_papers': 0,
+                'total_keywords': 0,
+                'total_categories': 0,
+                'total_sources': 0,
+                'recent_papers_7days': 0,
+                'source_distribution': {},
+                'category_distribution': {}
+            }
         finally:
             session.close()
     
@@ -394,6 +408,32 @@ class DatabaseManager:
             ]
         except Exception as e:
             self.logger.error(f"获取分类失败: {e}")
+            return []
+        finally:
+            session.close()
+    
+    def get_popular_keywords(self, limit: int = 20) -> List[Dict[str, Any]]:
+        """获取热门关键词"""
+        session = self.get_session()
+        try:
+            # 按关键词分组并计算出现次数
+            keyword_stats = session.query(
+                Keyword.keyword,
+                func.count(Keyword.id).label('count'),
+                func.avg(Keyword.score).label('avg_score')
+            ).group_by(Keyword.keyword).order_by(
+                desc(func.count(Keyword.id))
+            ).limit(limit).all()
+            
+            return [
+                {
+                    'keyword': kw.keyword,
+                    'count': kw.count,
+                    'avg_score': float(kw.avg_score) if kw.avg_score else 0.0
+                } for kw in keyword_stats
+            ]
+        except Exception as e:
+            self.logger.error(f"获取热门关键词失败: {e}")
             return []
         finally:
             session.close()

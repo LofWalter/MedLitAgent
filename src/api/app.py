@@ -309,6 +309,62 @@ def test_crawlers():
         logger.error(f"测试爬虫失败: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/keywords/popular', methods=['GET'])
+def get_popular_keywords():
+    """获取热门关键词"""
+    try:
+        limit = int(request.args.get('limit', 20))
+        keywords = db_manager.get_popular_keywords(limit)
+        
+        return jsonify({
+            'success': True,
+            'data': keywords
+        })
+        
+    except Exception as e:
+        logger.error(f"获取热门关键词失败: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/export', methods=['GET'])
+def export_papers_get():
+    """导出论文数据 (GET方法)"""
+    try:
+        export_format = request.args.get('format', 'csv')
+        query = request.args.get('query', '')
+        category = request.args.get('category', '')
+        source = request.args.get('source', '')
+        limit = int(request.args.get('limit', 1000))
+        
+        # 获取要导出的论文
+        papers = db_manager.search_papers(
+            query=query if query else None,
+            category=category if category else None,
+            source=source if source else None,
+            limit=limit
+        )
+        
+        if not papers:
+            return jsonify({'success': False, 'error': '没有找到要导出的论文'}), 400
+        
+        # 生成导出文件
+        from src.utils.export_utils import ExportUtils
+        export_utils = ExportUtils()
+        
+        if export_format == 'csv':
+            file_path = export_utils.export_to_csv(papers)
+        elif export_format == 'excel':
+            file_path = export_utils.export_to_excel(papers)
+        elif export_format == 'json':
+            file_path = export_utils.export_to_json(papers)
+        else:
+            return jsonify({'success': False, 'error': '不支持的导出格式'}), 400
+        
+        return send_file(file_path, as_attachment=True)
+        
+    except Exception as e:
+        logger.error(f"导出失败: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/export', methods=['POST'])
 def export_papers():
     """导出论文数据"""

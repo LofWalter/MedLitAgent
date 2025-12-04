@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+
+{% block title %}搜索文献 - MedLitAgent{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">🔍 搜索文献</h1>
+        </div>
+    </div>
+
+    <!-- 搜索表单 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">搜索条件</h5>
+                </div>
+                <div class="card-body">
+                    <form id="search-form">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="search-query">关键词搜索</label>
+                                    <input type="text" class="form-control" id="search-query" 
+                                           placeholder="输入搜索关键词...">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="search-category">医学分类</label>
+                                    <select class="form-control" id="search-category">
+                                        <option value="">所有分类</option>
+                                        <option value="cardiology">心脏病学</option>
+                                        <option value="oncology">肿瘤学</option>
+                                        <option value="neurology">神经学</option>
+                                        <option value="immunology">免疫学</option>
+                                        <option value="pharmacology">药理学</option>
+                                        <option value="genetics">遗传学</option>
+                                        <option value="infectious_diseases">传染病学</option>
+                                        <option value="surgery">外科学</option>
+                                        <option value="pediatrics">儿科学</option>
+                                        <option value="psychiatry">精神病学</option>
+                                        <option value="radiology">放射学</option>
+                                        <option value="pathology">病理学</option>
+                                        <option value="epidemiology">流行病学</option>
+                                        <option value="public_health">公共卫生</option>
+                                        <option value="clinical_trials">临床试验</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="search-source">数据源</label>
+                                    <select class="form-control" id="search-source">
+                                        <option value="">所有来源</option>
+                                        <option value="pubmed">PubMed</option>
+                                        <option value="arxiv">arXiv</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="search-limit">结果数量</label>
+                                    <select class="form-control" id="search-limit">
+                                        <option value="20">20</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                        <option value="200">200</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-1">
+                                <div class="form-group">
+                                    <label>&nbsp;</label>
+                                    <button type="submit" class="btn btn-primary btn-block">
+                                        <i class="fas fa-search"></i> 搜索
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 搜索结果 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">搜索结果</h5>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="exportResults('csv')">
+                            <i class="fas fa-download"></i> 导出CSV
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="exportResults('excel')">
+                            <i class="fas fa-file-excel"></i> 导出Excel
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="exportResults('json')">
+                            <i class="fas fa-code"></i> 导出JSON
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- 加载状态 -->
+                    <div id="loading-indicator" class="text-center" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">搜索中...</span>
+                        </div>
+                        <p class="mt-2">正在搜索文献...</p>
+                    </div>
+
+                    <!-- 搜索结果统计 -->
+                    <div id="search-stats" class="mb-3" style="display: none;">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            找到 <strong id="result-count">0</strong> 篇相关文献
+                            <span id="search-time"></span>
+                        </div>
+                    </div>
+
+                    <!-- 结果列表 -->
+                    <div id="search-results">
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-search fa-3x mb-3"></i>
+                            <p>请输入搜索条件开始搜索文献</p>
+                        </div>
+                    </div>
+
+                    <!-- 分页 -->
+                    <nav id="pagination" style="display: none;">
+                        <ul class="pagination justify-content-center">
+                            <!-- 分页按钮将通过JavaScript生成 -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 论文详情模态框 -->
+<div class="modal fade" id="paperModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">论文详情</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="paper-detail-content">
+                    <!-- 论文详情内容 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" onclick="openPaperUrl()">查看原文</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentSearchParams = {};
+let currentPage = 1;
+let totalPages = 1;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 绑定搜索表单提交事件
+    document.getElementById('search-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        performSearch();
+    });
+    
+    // 加载分类选项
+    loadCategories();
+});
+
+function loadCategories() {
+    fetch('/api/categories')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const select = document.getElementById('search-category');
+                // 清空现有选项（保留"所有分类"）
+                while (select.children.length > 1) {
+                    select.removeChild(select.lastChild);
+                }
+                
+                // 添加分类选项
+                data.data.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.name;
+                    option.textContent = category.display_name || category.name;
+                    select.appendChild(option);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('加载分类失败:', error);
+        });
+}
+
+function performSearch(page = 1) {
+    const query = document.getElementById('search-query').value.trim();
+    const category = document.getElementById('search-category').value;
+    const source = document.getElementById('search-source').value;
+    const limit = parseInt(document.getElementById('search-limit').value);
+    
+    // 构建搜索参数
+    const params = new URLSearchParams();
+    if (query) params.append('query', query);
+    if (category) params.append('category', category);
+    if (source) params.append('source', source);
+    params.append('page', page);
+    params.append('per_page', limit);
+    
+    currentSearchParams = {query, category, source, limit};
+    currentPage = page;
+    
+    // 显示加载状态
+    showLoading(true);
+    hideResults();
+    
+    const startTime = Date.now();
+    
+    fetch(`/api/papers?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            const endTime = Date.now();
+            const searchTime = ((endTime - startTime) / 1000).toFixed(2);
+            
+            showLoading(false);
+            
+            if (data.success) {
+                displayResults(data.data, searchTime);
+            } else {
+                showError(data.error || '搜索失败');
+            }
+        })
+        .catch(error => {
+            showLoading(false);
+            showError('网络错误: ' + error.message);
+            console.error('搜索失败:', error);
+        });
+}
+
+function showLoading(show) {
+    document.getElementById('loading-indicator').style.display = show ? 'block' : 'none';
+}
+
+function hideResults() {
+    document.getElementById('search-stats').style.display = 'none';
+    document.getElementById('pagination').style.display = 'none';
+}
+
+function displayResults(data, searchTime) {
+    const resultsContainer = document.getElementById('search-results');
+    const statsContainer = document.getElementById('search-stats');
+    const paginationContainer = document.getElementById('pagination');
+    
+    // 显示统计信息
+    document.getElementById('result-count').textContent = data.total || 0;
+    document.getElementById('search-time').textContent = `(用时 ${searchTime} 秒)`;
+    statsContainer.style.display = 'block';
+    
+    // 显示结果
+    if (!data.papers || data.papers.length === 0) {
+        resultsContainer.innerHTML = `
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-search fa-3x mb-3"></i>
+                <p>未找到匹配的文献</p>
+                <p class="small">请尝试调整搜索条件</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // 生成结果HTML
+    let html = '';
+    data.papers.forEach(paper => {
+        html += `
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-9">
+                            <h5 class="card-title">
+                                <a href="#" onclick="showPaperDetail(${paper.id})" class="text-decoration-none">
+                                    ${paper.title || '无标题'}
+                                </a>
+                            </h5>
+                            <p class="card-text">
+                                <strong>作者:</strong> ${paper.authors || 'N/A'}<br>
+                                <strong>期刊:</strong> ${paper.journal || 'N/A'}<br>
+                                <strong>发表日期:</strong> ${paper.publication_date || 'N/A'}
+                            </p>
+                            ${paper.abstract ? `<p class="card-text"><small class="text-muted">${paper.abstract.substring(0, 200)}...</small></p>` : ''}
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-right">
+                                ${paper.predicted_category ? `<span class="badge badge-primary mb-2">${paper.predicted_category}</span><br>` : ''}
+                                <span class="badge badge-secondary">${paper.source || 'N/A'}</span><br>
+                                ${paper.doi ? `<small><a href="https://doi.org/${paper.doi}" target="_blank" class="text-muted">DOI: ${paper.doi}</a></small><br>` : ''}
+                                ${paper.url ? `<small><a href="${paper.url}" target="_blank" class="text-muted">查看原文</a></small>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    resultsContainer.innerHTML = html;
+    
+    // 显示分页
+    if (data.total > data.per_page) {
+        totalPages = Math.ceil(data.total / data.per_page);
+        displayPagination();
+        paginationContainer.style.display = 'block';
+    }
+}
+
+function displayPagination() {
+    const paginationContainer = document.querySelector('#pagination .pagination');
+    let html = '';
+    
+    // 上一页
+    html += `
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="performSearch(${currentPage - 1})">上一页</a>
+        </li>
+    `;
+    
+    // 页码
+    const startPage = Math.max(1, currentPage - 2);
+    const endPage = Math.min(totalPages, currentPage + 2);
+    
+    if (startPage > 1) {
+        html += '<li class="page-item"><a class="page-link" href="#" onclick="performSearch(1)">1</a></li>';
+        if (startPage > 2) {
+            html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+        }
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        html += `
+            <li class="page-item ${i === currentPage ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="performSearch(${i})">${i}</a>
+            </li>
+        `;
+    }
+    
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+        }
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="performSearch(${totalPages})">${totalPages}</a></li>`;
+    }
+    
+    // 下一页
+    html += `
+        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="performSearch(${currentPage + 1})">下一页</a>
+        </li>
+    `;
+    
+    paginationContainer.innerHTML = html;
+}
+
+function showError(message) {
+    const resultsContainer = document.getElementById('search-results');
+    resultsContainer.innerHTML = `
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i>
+            ${message}
+        </div>
+    `;
+}
+
+function showPaperDetail(paperId) {
+    fetch(`/api/papers/${paperId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayPaperDetail(data.data);
+                $('#paperModal').modal('show');
+            } else {
+                alert('加载论文详情失败: ' + (data.error || '未知错误'));
+            }
+        })
+        .catch(error => {
+            alert('网络错误: ' + error.message);
+            console.error('加载论文详情失败:', error);
+        });
+}
+
+function displayPaperDetail(paper) {
+    const content = document.getElementById('paper-detail-content');
+    content.innerHTML = `
+        <div class="row">
+            <div class="col-12">
+                <h4>${paper.title || '无标题'}</h4>
+                <hr>
+                <p><strong>作者:</strong> ${paper.authors || 'N/A'}</p>
+                <p><strong>期刊:</strong> ${paper.journal || 'N/A'}</p>
+                <p><strong>发表日期:</strong> ${paper.publication_date || 'N/A'}</p>
+                <p><strong>数据源:</strong> <span class="badge badge-secondary">${paper.source || 'N/A'}</span></p>
+                ${paper.predicted_category ? `<p><strong>分类:</strong> <span class="badge badge-primary">${paper.predicted_category}</span></p>` : ''}
+                ${paper.doi ? `<p><strong>DOI:</strong> <a href="https://doi.org/${paper.doi}" target="_blank">${paper.doi}</a></p>` : ''}
+                ${paper.url ? `<p><strong>原文链接:</strong> <a href="${paper.url}" target="_blank">查看原文</a></p>` : ''}
+                ${paper.abstract ? `<div><strong>摘要:</strong><p class="mt-2">${paper.abstract}</p></div>` : ''}
+            </div>
+        </div>
+    `;
+    
+    // 保存当前论文URL用于"查看原文"按钮
+    window.currentPaperUrl = paper.url;
+}
+
+function openPaperUrl() {
+    if (window.currentPaperUrl) {
+        window.open(window.currentPaperUrl, '_blank');
+    } else {
+        alert('无可用的原文链接');
+    }
+}
+
+function exportResults(format) {
+    if (!currentSearchParams.query && !currentSearchParams.category && !currentSearchParams.source) {
+        alert('请先进行搜索');
+        return;
+    }
+    
+    const params = new URLSearchParams();
+    if (currentSearchParams.query) params.append('query', currentSearchParams.query);
+    if (currentSearchParams.category) params.append('category', currentSearchParams.category);
+    if (currentSearchParams.source) params.append('source', currentSearchParams.source);
+    params.append('format', format);
+    params.append('limit', 1000); // 导出更多结果
+    
+    const url = `/api/export?${params.toString()}`;
+    window.open(url, '_blank');
+}
+</script>
+{% endblock %}
