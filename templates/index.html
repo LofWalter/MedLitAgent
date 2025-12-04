@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}首页 - 医学文献爬取系统{% endblock %}
+
+{% block page_title %}欢迎使用医学文献爬取系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 系统介绍 -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-info-circle text-primary"></i>
+                    系统介绍
+                </h5>
+                <p class="card-text">
+                    MedLitAgent是一个智能的医学文献爬取和整理系统，能够从PubMed、arXiv等主要医学文献数据库中自动爬取文献，
+                    并使用先进的自然语言处理技术对文献进行关键词提取和分类整理。
+                </p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-star text-warning"></i> 主要功能</h6>
+                        <ul>
+                            <li>多数据源文献爬取（PubMed、arXiv）</li>
+                            <li>智能关键词提取和分类</li>
+                            <li>医学领域自动分类</li>
+                            <li>文献搜索和管理</li>
+                            <li>数据导出和报告生成</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-cogs text-info"></i> 技术特点</h6>
+                        <ul>
+                            <li>基于机器学习的文本分类</li>
+                            <li>多种关键词提取算法</li>
+                            <li>实时数据处理和存储</li>
+                            <li>响应式Web界面</li>
+                            <li>RESTful API接口</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 快速开始 -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-rocket text-success"></i>
+                    快速开始
+                </h5>
+                <p class="card-text">开始您的第一次文献爬取任务</p>
+                <div class="d-grid gap-2">
+                    <a href="/crawl" class="btn btn-primary">
+                        <i class="fas fa-spider"></i>
+                        开始爬取
+                    </a>
+                    <a href="/search" class="btn btn-outline-primary">
+                        <i class="fas fa-search"></i>
+                        搜索文献
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统状态 -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-heartbeat text-danger"></i>
+                    系统状态
+                </h5>
+                <div id="system-status">
+                    <div class="loading">
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                        正在检查系统状态...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计信息 -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-chart-pie text-info"></i>
+                    统计概览
+                </h5>
+                <div id="statistics-overview">
+                    <div class="loading show">
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                        正在加载统计信息...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 最近活动 -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-clock text-warning"></i>
+                    最近活动
+                </h5>
+                <div id="recent-activity">
+                    <p class="text-muted">暂无最近活动记录</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // 检查系统状态
+    checkSystemStatus();
+    
+    // 加载统计信息
+    loadStatistics();
+    
+    // 定期刷新状态
+    setInterval(checkSystemStatus, 30000); // 30秒刷新一次
+});
+
+function checkSystemStatus() {
+    apiCall('/api/health')
+        .then(response => {
+            if (response.status === 'healthy') {
+                $('#system-status').html(`
+                    <div class="alert alert-success mb-0">
+                        <i class="fas fa-check-circle"></i>
+                        系统运行正常
+                        <small class="d-block">最后检查: ${new Date().toLocaleString()}</small>
+                    </div>
+                `);
+            } else {
+                $('#system-status').html(`
+                    <div class="alert alert-warning mb-0">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        系统状态异常
+                    </div>
+                `);
+            }
+        })
+        .catch(error => {
+            $('#system-status').html(`
+                <div class="alert alert-danger mb-0">
+                    <i class="fas fa-times-circle"></i>
+                    无法连接到系统
+                </div>
+            `);
+        });
+}
+
+function loadStatistics() {
+    apiCall('/api/statistics')
+        .then(response => {
+            if (response.success) {
+                const stats = response.data;
+                displayStatistics(stats);
+            } else {
+                $('#statistics-overview').html(`
+                    <div class="alert alert-warning mb-0">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        无法加载统计信息: ${response.error}
+                    </div>
+                `);
+            }
+        })
+        .catch(error => {
+            $('#statistics-overview').html(`
+                <div class="alert alert-danger mb-0">
+                    <i class="fas fa-times-circle"></i>
+                    加载统计信息失败
+                </div>
+            `);
+        });
+}
+
+function displayStatistics(stats) {
+    const dbStats = stats.database || {};
+    const crawlerStats = stats.crawlers || {};
+    
+    const html = `
+        <div class="row">
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <h4>${dbStats.total_papers || 0}</h4>
+                        <p class="mb-0">总论文数</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h4>${dbStats.total_keywords || 0}</h4>
+                        <p class="mb-0">总关键词数</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <h4>${dbStats.recent_papers_7days || 0}</h4>
+                        <p class="mb-0">近7天新增</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <h4>${crawlerStats.total_crawlers || 0}</h4>
+                        <p class="mb-0">可用爬虫</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <h6>数据源分布</h6>
+                <div class="source-distribution">
+                    ${Object.entries(dbStats.source_distribution || {}).map(([source, count]) => `
+                        <div class="d-flex justify-content-between">
+                            <span>${source}</span>
+                            <span class="badge bg-secondary">${count}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <h6>分类分布</h6>
+                <div class="category-distribution">
+                    ${Object.entries(dbStats.category_distribution || {}).slice(0, 5).map(([category, count]) => `
+                        <div class="d-flex justify-content-between">
+                            <span>${category}</span>
+                            <span class="badge bg-secondary">${count}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    $('#statistics-overview').html(html);
+}
+</script>
+{% endblock %}

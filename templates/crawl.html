@@ -1,0 +1,457 @@
+{% extends "base.html" %}
+
+{% block title %}爬取文献 - 医学文献爬取系统{% endblock %}
+
+{% block page_title %}爬取文献{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 爬取配置 -->
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-cog text-primary"></i>
+                    爬取配置
+                </h5>
+                
+                <form id="crawl-form">
+                    <!-- 关键词输入 -->
+                    <div class="mb-3">
+                        <label for="keywords" class="form-label">关键词</label>
+                        <textarea class="form-control" id="keywords" rows="3" 
+                                placeholder="请输入关键词，每行一个，例如：&#10;machine learning&#10;deep learning&#10;neural network"></textarea>
+                        <div class="form-text">每行输入一个关键词，系统将根据这些关键词搜索相关文献</div>
+                    </div>
+                    
+                    <!-- 数据源选择 -->
+                    <div class="mb-3">
+                        <label class="form-label">数据源</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="pubmed" id="source-pubmed" checked>
+                            <label class="form-check-label" for="source-pubmed">
+                                PubMed <small class="text-muted">(生物医学文献数据库)</small>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="arxiv" id="source-arxiv" checked>
+                            <label class="form-check-label" for="source-arxiv">
+                                arXiv <small class="text-muted">(预印本论文库)</small>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- 爬取数量 -->
+                    <div class="mb-3">
+                        <label for="max-results" class="form-label">每个关键词最大爬取数量</label>
+                        <select class="form-select" id="max-results">
+                            <option value="50">50篇</option>
+                            <option value="100" selected>100篇</option>
+                            <option value="200">200篇</option>
+                            <option value="500">500篇</option>
+                        </select>
+                    </div>
+                    
+                    <!-- 高级选项 -->
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="extract-keywords" checked>
+                            <label class="form-check-label" for="extract-keywords">
+                                自动提取关键词
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="classify-papers" checked>
+                            <label class="form-check-label" for="classify-papers">
+                                自动分类论文
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- 提交按钮 -->
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg" id="start-crawl-btn">
+                            <i class="fas fa-spider"></i>
+                            开始爬取
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 快速模板 -->
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-magic text-success"></i>
+                    快速模板
+                </h5>
+                <p class="card-text">选择预设的关键词模板快速开始</p>
+                
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary btn-sm" onclick="loadTemplate('cardiology')">
+                        心脏病学
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="loadTemplate('oncology')">
+                        肿瘤学
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="loadTemplate('neurology')">
+                        神经学
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="loadTemplate('ai_medical')">
+                        AI医学
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="loadTemplate('covid19')">
+                        COVID-19
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 爬虫状态 -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-robot text-info"></i>
+                    爬虫状态
+                </h5>
+                <div id="crawler-status">
+                    <div class="loading show">
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">检查中...</span>
+                        </div>
+                        正在检查爬虫状态...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 爬取进度 -->
+<div class="row" id="crawl-progress" style="display: none;">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-tasks text-warning"></i>
+                    爬取进度
+                </h5>
+                
+                <div class="progress mb-3">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" style="width: 0%" id="progress-bar">
+                        0%
+                    </div>
+                </div>
+                
+                <div id="progress-details">
+                    <p class="mb-1">正在初始化爬取任务...</p>
+                    <small class="text-muted">请稍候，这可能需要几分钟时间</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 爬取结果 -->
+<div class="row" id="crawl-results" style="display: none;">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-check-circle text-success"></i>
+                    爬取结果
+                </h5>
+                <div id="results-content"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 关键词模板
+const templates = {
+    cardiology: [
+        'cardiovascular disease',
+        'heart failure',
+        'coronary artery disease',
+        'myocardial infarction',
+        'arrhythmia',
+        'hypertension'
+    ],
+    oncology: [
+        'cancer treatment',
+        'chemotherapy',
+        'immunotherapy',
+        'tumor biology',
+        'oncology',
+        'metastasis'
+    ],
+    neurology: [
+        'neurological disorders',
+        'Alzheimer disease',
+        'Parkinson disease',
+        'stroke',
+        'epilepsy',
+        'multiple sclerosis'
+    ],
+    ai_medical: [
+        'artificial intelligence medicine',
+        'machine learning healthcare',
+        'deep learning medical',
+        'medical image analysis',
+        'clinical decision support',
+        'medical AI'
+    ],
+    covid19: [
+        'COVID-19',
+        'SARS-CoV-2',
+        'coronavirus',
+        'pandemic',
+        'vaccine',
+        'antiviral treatment'
+    ]
+};
+
+$(document).ready(function() {
+    // 检查爬虫状态
+    checkCrawlerStatus();
+    
+    // 表单提交处理
+    $('#crawl-form').on('submit', function(e) {
+        e.preventDefault();
+        startCrawl();
+    });
+});
+
+function loadTemplate(templateName) {
+    const keywords = templates[templateName];
+    if (keywords) {
+        $('#keywords').val(keywords.join('\n'));
+        showMessage(`已加载${templateName}模板`, 'success');
+    }
+}
+
+function checkCrawlerStatus() {
+    apiCall('/api/test-crawlers')
+        .then(response => {
+            if (response.success) {
+                const crawlers = response.data;
+                let html = '';
+                
+                for (const [name, status] of Object.entries(crawlers)) {
+                    const statusClass = status ? 'text-success' : 'text-danger';
+                    const statusIcon = status ? 'fa-check-circle' : 'fa-times-circle';
+                    const statusText = status ? '正常' : '异常';
+                    
+                    html += `
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>${name.toUpperCase()}</span>
+                            <span class="${statusClass}">
+                                <i class="fas ${statusIcon}"></i>
+                                ${statusText}
+                            </span>
+                        </div>
+                    `;
+                }
+                
+                $('#crawler-status').html(html);
+            } else {
+                $('#crawler-status').html(`
+                    <div class="alert alert-warning mb-0">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        无法检查爬虫状态
+                    </div>
+                `);
+            }
+        })
+        .catch(error => {
+            $('#crawler-status').html(`
+                <div class="alert alert-danger mb-0">
+                    <i class="fas fa-times-circle"></i>
+                    检查爬虫状态失败
+                </div>
+            `);
+        });
+}
+
+function startCrawl() {
+    // 获取表单数据
+    const keywordsText = $('#keywords').val().trim();
+    if (!keywordsText) {
+        showMessage('请输入关键词', 'error');
+        return;
+    }
+    
+    const keywords = keywordsText.split('\n').filter(k => k.trim()).map(k => k.trim());
+    const sources = [];
+    
+    if ($('#source-pubmed').is(':checked')) sources.push('pubmed');
+    if ($('#source-arxiv').is(':checked')) sources.push('arxiv');
+    
+    if (sources.length === 0) {
+        showMessage('请至少选择一个数据源', 'error');
+        return;
+    }
+    
+    const maxResults = parseInt($('#max-results').val());
+    
+    // 准备请求数据
+    const requestData = {
+        keywords: keywords,
+        sources: sources,
+        max_results: maxResults
+    };
+    
+    // 显示进度
+    showCrawlProgress();
+    
+    // 禁用表单
+    $('#start-crawl-btn').prop('disabled', true).html(`
+        <div class="spinner-border spinner-border-sm" role="status">
+            <span class="visually-hidden">爬取中...</span>
+        </div>
+        爬取中...
+    `);
+    
+    // 开始爬取
+    apiCall('/api/crawl', 'POST', requestData)
+        .then(response => {
+            if (response.success) {
+                showCrawlResults(response.data);
+                showMessage('爬取任务完成！', 'success');
+            } else {
+                showMessage(`爬取失败: ${response.error}`, 'error');
+            }
+        })
+        .catch(error => {
+            showMessage('爬取过程中发生错误', 'error');
+            console.error('爬取错误:', error);
+        })
+        .finally(() => {
+            // 恢复表单
+            $('#start-crawl-btn').prop('disabled', false).html(`
+                <i class="fas fa-spider"></i>
+                开始爬取
+            `);
+            hideCrawlProgress();
+        });
+}
+
+function showCrawlProgress() {
+    $('#crawl-progress').show();
+    $('#crawl-results').hide();
+    
+    // 模拟进度更新
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += Math.random() * 10;
+        if (progress > 90) progress = 90;
+        
+        $('#progress-bar').css('width', progress + '%').text(Math.round(progress) + '%');
+        
+        if (progress > 30 && progress < 60) {
+            $('#progress-details').html(`
+                <p class="mb-1">正在爬取文献数据...</p>
+                <small class="text-muted">已处理 ${Math.round(progress)}%</small>
+            `);
+        } else if (progress >= 60) {
+            $('#progress-details').html(`
+                <p class="mb-1">正在处理和分析文献...</p>
+                <small class="text-muted">提取关键词和分类中...</small>
+            `);
+        }
+    }, 1000);
+    
+    // 存储interval ID以便后续清除
+    window.crawlProgressInterval = interval;
+}
+
+function hideCrawlProgress() {
+    if (window.crawlProgressInterval) {
+        clearInterval(window.crawlProgressInterval);
+    }
+    
+    // 完成进度条
+    $('#progress-bar').css('width', '100%').text('100%');
+    $('#progress-details').html(`
+        <p class="mb-1">爬取任务完成</p>
+        <small class="text-muted">正在显示结果...</small>
+    `);
+    
+    setTimeout(() => {
+        $('#crawl-progress').hide();
+    }, 2000);
+}
+
+function showCrawlResults(data) {
+    $('#crawl-results').show();
+    
+    const html = `
+        <div class="row">
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <h4>${data.total_papers || 0}</h4>
+                        <p class="mb-0">总爬取论文</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h4>${data.saved_papers || 0}</h4>
+                        <p class="mb-0">成功保存</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <h4>${data.skipped_papers || 0}</h4>
+                        <p class="mb-0">跳过重复</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body text-center">
+                        <h4>${data.failed_papers || 0}</h4>
+                        <p class="mb-0">处理失败</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <h6>数据源分布</h6>
+            <div class="source-results">
+                ${(data.sources || []).map(source => `
+                    <span class="badge bg-secondary me-2">${source}</span>
+                `).join('')}
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="/search" class="btn btn-primary">
+                    <i class="fas fa-search"></i>
+                    查看爬取结果
+                </a>
+                <a href="/dashboard" class="btn btn-outline-primary">
+                    <i class="fas fa-chart-bar"></i>
+                    查看统计
+                </a>
+            </div>
+        </div>
+    `;
+    
+    $('#results-content').html(html);
+}
+</script>
+{% endblock %}
