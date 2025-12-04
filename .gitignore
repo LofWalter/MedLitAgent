@@ -73,4 +73,43 @@ coverage.xml
 # Selenium
 chromedriver
 geckodriver
+
+# Docker
+.dockerignore
+
+# Build artifacts
+*.whl
+*.tar.gz
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Export files (keep structure but ignore content)
+demo_exports/*.csv
+demo_exports/*.json
+demo_exports/*.html
+demo_exports/*.pdf
+demo_exports/*.xlsx
+
+# Model files (large files)
+data/models/*.pkl
+data/models/*.joblib
+data/models/*.h5
+data/models/*.pt
+data/models/*.pth
+
+# NLTK data (downloaded separately)
+nltk_data/
+
+# Backup files
+*.bak
+*.backup
+
+# System files
 *.exe
+*.msi
+*.deb
+*.rpm

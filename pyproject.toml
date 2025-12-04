@@ -1,0 +1,196 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "medlitagent"
+version = "1.0.0"
+description = "Medical Literature Crawling and Organization System"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "MedLitAgent Team", email = "contact@medlitagent.com"}
+]
+maintainers = [
+    {name = "MedLitAgent Team", email = "contact@medlitagent.com"}
+]
+keywords = [
+    "medical",
+    "literature",
+    "crawling",
+    "nlp",
+    "machine-learning",
+    "pubmed",
+    "arxiv",
+    "research"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Healthcare Industry",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.12.9",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Text Processing :: Linguistic",
+]
+requires-python = ">=3.12.9"
+dependencies = [
+    # Web scraping and HTTP requests
+    "requests>=2.32.0",
+    "beautifulsoup4>=4.12.0",
+    "selenium>=4.15.0",
+    
+    # Data processing and analysis
+    "pandas>=2.2.0",
+    "numpy>=1.26.0",
+    "scikit-learn>=1.4.0",
+    
+    # Natural Language Processing
+    "nltk>=3.8.1",
+    "spacy>=3.7.0",
+    "transformers>=4.36.0",
+    
+    # Database
+    "sqlalchemy>=2.0.25",
+    
+    # Web framework
+    "flask>=3.0.0",
+    "flask-cors>=4.0.0",
+    "flask-sqlalchemy>=3.1.0",
+    
+    # Medical/Scientific APIs
+    "biopython>=1.83",
+    
+    # Utilities
+    "python-dotenv>=1.0.0",
+    "tqdm>=4.66.0",
+    "schedule>=1.2.0",
+    
+    # Export formats
+    "openpyxl>=3.1.0",
+    "reportlab>=4.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.5.0",
+    "pre-commit>=3.4.0",
+]
+gpu = [
+    "torch>=2.1.0",
+    "torchvision>=0.16.0",
+    "torchaudio>=2.1.0",
+]
+full = [
+    "medlitagent[dev,gpu]",
+]
+
+[project.urls]
+Homepage = "https://github.com/LofWalter/MedLitAgent"
+Documentation = "https://github.com/LofWalter/MedLitAgent/blob/main/README.md"
+Repository = "https://github.com/LofWalter/MedLitAgent"
+"Bug Tracker" = "https://github.com/LofWalter/MedLitAgent/issues"
+
+[project.scripts]
+medlitagent = "main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*", "config*"]
+exclude = ["tests*", "docs*", "demo_exports*"]
+
+[tool.setuptools.package-data]
+"config" = ["*.json"]
+"templates" = ["*.html"]
+"static" = ["*.css", "*.js"]
+
+# Black configuration
+[tool.black]
+line-length = 88
+target-version = ['py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+# MyPy configuration
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+# Pytest configuration
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = [
+    "tests",
+]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+]
+python_classes = [
+    "Test*",
+]
+python_functions = [
+    "test_*",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/env/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]

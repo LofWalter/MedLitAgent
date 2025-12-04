@@ -15,13 +15,66 @@ MedLitAgent是一个智能的医学文献爬取和整理系统，能够从PubMed
 
 ### 1. 环境要求
 
-- Python 3.8+
-- pip
+- **Python 3.12.9** (推荐版本)
+- pip (最新版本)
+- Git
 
 ### 2. 安装依赖
 
+#### 方法一：使用 pip (推荐)
 ```bash
 cd MedLitAgent
+
+# 确保使用 Python 3.12.9
+python --version  # 应该显示 Python 3.12.9
+
+# 升级 pip
+pip install --upgrade pip
+
+# 安装依赖
+pip install -r requirements.txt
+
+# 或者使用 pyproject.toml
+pip install -e .
+```
+
+#### 方法二：使用 Docker
+```bash
+cd MedLitAgent
+
+# 构建镜像
+docker build -t medlitagent .
+
+# 运行容器
+docker run -p 12000:12000 medlitagent
+
+# 或者使用 docker-compose
+docker-compose up
+```
+
+#### 方法三：Python 版本管理
+如果您需要安装 Python 3.12.9：
+
+**使用 pyenv (Linux/macOS):**
+```bash
+# 安装 pyenv
+curl https://pyenv.run | bash
+
+# 安装 Python 3.12.9
+pyenv install 3.12.9
+pyenv local 3.12.9
+
+# 验证版本
+python --version
+```
+
+**使用 conda:**
+```bash
+# 创建新环境
+conda create -n medlitagent python=3.12.9
+conda activate medlitagent
+
+# 安装依赖
 pip install -r requirements.txt
 ```
 
